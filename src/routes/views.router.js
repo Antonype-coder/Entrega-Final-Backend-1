@@ -1,29 +1,45 @@
 import express from "express";
 import Product from "../models/product.model.js";
 import Cart from "../models/cart.model.js";
+import { v4 as uuidv4 } from 'uuid';
 
 const router = express.Router();
 
-const getOrCreateUserCart = async (req) => {
-    const userIdentifier = req.ip + req.get('User-Agent');
-    
-    let cart = await Cart.findOne().sort({ createdAt: -1 }).limit(1);
-    
-    if (!cart) {
-        cart = new Cart();
-        await cart.save();
+const userCarts = new Map();
+
+const generatePCId = (req) => {
+    const ip = req.ip || req.connection.remoteAddress;
+    const userAgent = req.get('User-Agent') || '';
+    return Buffer.from(ip + userAgent).toString('base64').slice(0, 16);
+};
+
+const getOrCreatePCCart = async (req) => {
+    try {
+        const pcId = generatePCId(req);
+        
+        if (userCarts.has(pcId)) {
+            const cartId = userCarts.get(pcId);
+            const cart = await Cart.findById(cartId);
+            if (cart) return cart;
+        }
+        
+        const newCart = new Cart();
+        await newCart.save();
+        
+        userCarts.set(pcId, newCart._id.toString());
+        
+        return newCart;
+        
+    } catch (error) {
+        console.error("Error creando carrito:", error);
+        const fallbackCart = new Cart();
+        await fallbackCart.save();
+        return fallbackCart;
     }
-    
-    return cart;
 };
 
 router.get("/", async (req, res) => {
-    try {
-        const cart = await getOrCreateUserCart(req);
-        res.redirect("/products");
-    } catch (error) {
-        res.redirect("/products");
-    }
+    res.redirect("/products");
 });
 
 router.get("/products", async (req, res) => {
@@ -46,7 +62,7 @@ router.get("/products", async (req, res) => {
         };
 
         const data = await Product.paginate(filter, options);
-        const cart = await getOrCreateUserCart(req);
+        const cart = await getOrCreatePCCart(req);
 
         res.render("products", {
             products: data.docs,
@@ -71,7 +87,7 @@ router.get("/products/:pid", async (req, res) => {
         const product = await Product.findById(req.params.pid).lean();
         if (!product) return res.status(404).send("Producto no encontrado");
         
-        const cart = await getOrCreateUserCart(req);
+        const cart = await getOrCreatePCCart(req);
         res.render("productDetail", { product, cartId: cart._id });
     } catch (error) {
         console.error("Error en /products/:pid:", error);
@@ -82,7 +98,10 @@ router.get("/products/:pid", async (req, res) => {
 router.get("/carts/:cid", async (req, res) => {
     try {
         const cart = await Cart.findById(req.params.cid).populate("products.product").lean();
-        if (!cart) return res.status(404).send("Carrito no encontrado");
+        if (!cart) {
+            const newCart = await getOrCreatePCCart(req);
+            return res.redirect(`/carts/${newCart._id}`);
+        }
         
         let total = 0;
         cart.products.forEach(item => {
@@ -98,11 +117,16 @@ router.get("/carts/:cid", async (req, res) => {
     }
 });
 
-router.get("/new-cart", async (req, res) => {
+router.get("/reset-cart", async (req, res) => {
     try {
-        const cart = new Cart();
-        await cart.save();
-        res.redirect(`/carts/${cart._id}`);
+        const pcId = generatePCId(req);
+        userCarts.delete(pcId); 
+        
+        const newCart = new Cart();
+        await newCart.save();
+        userCarts.set(pcId, newCart._id.toString());
+        
+        res.redirect(`/carts/${newCart._id}`);
     } catch (error) {
         res.redirect("/products");
     }

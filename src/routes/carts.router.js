@@ -25,7 +25,11 @@ router.get("/:cid", async (req, res) => {
 
 router.post("/:cid/products/:pid", async (req, res) => {
     try {
-        const quantity = parseInt(req.body.quantity) || 1;
+        let quantity = 1;
+        if (req.body && req.body.quantity) {
+            quantity = parseInt(req.body.quantity) || 1;
+        }
+
         const cart = await Cart.findById(req.params.cid);
         const product = await Product.findById(req.params.pid);
 
@@ -33,7 +37,7 @@ router.post("/:cid/products/:pid", async (req, res) => {
             return res.status(404).json({ status: "error", message: "No encontrado" });
         }
 
-        const existing = cart.products.find(p => p.product.toString() === req.params.pid);
+        const existing = cart.products.find(p => p.product && p.product.toString() === req.params.pid);
         
         if (existing) {
             existing.quantity += quantity;
@@ -42,10 +46,12 @@ router.post("/:cid/products/:pid", async (req, res) => {
         }
 
         await cart.save();
+        const updatedCart = await Cart.findById(cart._id).populate("products.product").lean();
         
         res.redirect(`/carts/${cart._id}`);
         
     } catch (error) {
+        console.error("Error agregando producto:", error);
         res.status(500).json({ status: "error", message: error.message });
     }
 });
