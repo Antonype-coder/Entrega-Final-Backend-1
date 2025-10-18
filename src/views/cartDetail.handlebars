@@ -1,4 +1,4 @@
-<h2 class="mb-4">Mi Carrito</h2>
+<h2 class="mb-4">Mi Carrito (ID: {{cart._id}})</h2>
 
 {{#if cart.products.length}}
 <div class="table-responsive">
@@ -22,9 +22,7 @@
                 <td>${{multiply this.product.price this.quantity}}</td>
                 <td>
                     <button onclick="deleteProduct('{{../cart._id}}', '{{this.product._id}}')" 
-                            class="btn btn-danger btn-sm">
-                        Eliminar
-                    </button>
+                            class="btn btn-danger btn-sm">Eliminar</button>
                 </td>
             </tr>
             {{/if}}
@@ -38,14 +36,16 @@
     <div>
         <button onclick="clearCart('{{cart._id}}')" class="btn btn-outline-danger me-2">Vaciar Carrito</button>
         <a href="/products" class="btn btn-secondary me-2">Seguir Comprando</a>
+        <a href="/new-cart" class="btn btn-info me-2">Nuevo Carrito</a>
         <button class="btn btn-success">Comprar</button>
     </div>
 </div>
 {{else}}
 <div class="text-center py-5">
     <h3 class="text-muted">Carrito vacío</h3>
-    <p class="text-muted">Agrega algunos productos</p>
-    <a href="/products" class="btn btn-primary">Ver Productos</a>
+    <p class="text-muted">Tu carrito ID: {{cart._id}}</p>
+    <a href="/products" class="btn btn-primary me-2">Ver Productos</a>
+    <a href="/new-cart" class="btn btn-outline-primary">Crear Nuevo Carrito</a>
 </div>
 {{/if}}
 
