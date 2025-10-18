@@ -1,19 +1,25 @@
-<h2>{{product.title}}</h2>
-
 <div class="row">
-  <div class="col-md-6">
-    <img src="{{product.thumbnail}}" class="img-fluid" alt="{{product.title}}">
-  </div>
-  <div class="col-md-6">
-    <p><strong>Precio:</strong> ${{product.price}}</p>
-    <p><strong>Categoría:</strong> {{product.category}}</p>
-    <p>{{product.description}}</p>
-
-    <form action="/api/carts/{{cartId}}/products/{{product._id}}" method="POST">
-      <input type="number" name="quantity" value="1" min="1" class="form-control mb-2">
-      <button type="submit" class="btn btn-success w-100">Agregar al Carrito</button>
-    </form>
-
-    <a href="/products" class="btn btn-secondary mt-2 w-100">Volver</a>
-  </div>
+    <div class="col-md-6">
+        <img src="{{product.thumbnail}}" class="img-fluid rounded" alt="{{product.title}}">
+    </div>
+    <div class="col-md-6">
+        <h2>{{product.title}}</h2>
+        <p class="text-muted">{{product.description}}</p>
+        <h4 class="text-primary">${{product.price}}</h4>
+        <p><strong>Categoría:</strong> {{product.category}}</p>
+        <p><strong>Stock:</strong> {{product.stock}}</p>
+        
+        {{#if product.status}}
+        <form action="/api/carts/{{cartId}}/products/{{product._id}}" method="POST" class="mb-3">
+            <div class="input-group" style="max-width: 200px;">
+                <input type="number" name="quantity" value="1" min="1" class="form-control">
+                <button class="btn btn-success" type="submit">Agregar al Carrito</button>
+            </div>
+        </form>
+        {{else}}
+        <div class="alert alert-warning">Producto no disponible</div>
+        {{/if}}
+        
+        <a href="/products" class="btn btn-secondary">Volver</a>
+    </div>
 </div>

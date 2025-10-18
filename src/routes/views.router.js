@@ -4,92 +4,81 @@ import Cart from "../models/cart.model.js";
 
 const router = express.Router();
 
-router.get("/", async (req, res) => {
-  res.redirect("/products");
-});
+router.get("/", (req, res) => res.redirect("/products"));
+
+const getOrCreateCart = async () => {
+    let cart = await Cart.findOne();
+    if (!cart) cart = await new Cart().save();
+    return cart;
+};
 
 router.get("/products", async (req, res) => {
-  try {
-    const { limit = 10, page = 1, sort, query } = req.query;
+    try {
+        const { limit = 9, page = 1, sort, query } = req.query;
+        
+        let filter = {};
+        if (query) {
+            filter.$or = [
+                { title: { $regex: query, $options: "i" } },
+                { category: { $regex: query, $options: "i" } }
+            ];
+        }
 
-    let filter = {};
-    if (query) {
-      if (query.includes(":")) {
-        const [field, val] = query.split(":");
-        if (field === "status") filter.status = val === "true" || val === "1";
-        else if (field === "category") filter.category = val;
-        else filter.$or = [{ title: { $regex: query, $options: "i" } }, { description: { $regex: query, $options: "i" } }];
-      } else {
-        filter.$or = [{ category: { $regex: `^${query}$`, $options: "i" } }, { title: { $regex: query, $options: "i" } }];
-      }
+        const options = { 
+            page: parseInt(page), 
+            limit: parseInt(limit), 
+            lean: true,
+            sort: sort === "asc" ? { price: 1 } : sort === "desc" ? { price: -1 } : {}
+        };
+
+        const data = await Product.paginate(filter, options);
+        const cart = await getOrCreateCart();
+
+        res.render("products", {
+            products: data.docs,
+            page: data.page,
+            totalPages: data.totalPages,
+            hasPrevPage: data.hasPrevPage,
+            hasNextPage: data.hasNextPage,
+            prevLink: data.hasPrevPage ? `/products?page=${data.prevPage}&query=${query || ''}&sort=${sort || ''}` : null,
+            nextLink: data.hasNextPage ? `/products?page=${data.nextPage}&query=${query || ''}&sort=${sort || ''}` : null,
+            cartId: cart._id,
+            query: query || "",
+            sort: sort || ""
+        });
+    } catch (error) {
+        console.error("Error:", error);
+        res.status(500).send("Error al cargar productos");
     }
-
-    let sortObj = {};
-    if (sort === "asc") sortObj.price = 1;
-    else if (sort === "desc") sortObj.price = -1;
-
-    const options = { page: parseInt(page), limit: parseInt(limit), lean: true };
-    if (Object.keys(sortObj).length) options.sort = sortObj;
-
-    const data = await Product.paginate(filter, options);
-
-    const baseUrl = "/products";
-    const queryParams = { ...req.query };
-    const buildHref = (p) => {
-      const q = { ...queryParams, page: p };
-      const qs = Object.keys(q).map(k => `${k}=${encodeURIComponent(q[k])}`).join("&");
-      return `${baseUrl}?${qs}`;
-    };
-
-    let cart = await Cart.findOne();
-    if (!cart) {
-      cart = new Cart();
-      await cart.save();
-    }
-
-    res.render("products", {
-      products: data.docs,
-      page: data.page,
-      totalPages: data.totalPages,
-      hasPrevPage: data.hasPrevPage,
-      hasNextPage: data.hasNextPage,
-      prevLink: data.hasPrevPage ? buildHref(data.prevPage) : null,
-      nextLink: data.hasNextPage ? buildHref(data.nextPage) : null,
-      cartId: cart._id
-    });
-  } catch (error) {
-    console.error("GET /products view error:", error);
-    res.status(500).send("Error al mostrar productos");
-  }
 });
 
 router.get("/products/:pid", async (req, res) => {
-  try {
-    const product = await Product.findById(req.params.pid).lean();
-    if (!product) return res.status(404).send("Producto no encontrado");
-    
-    let cart = await Cart.findOne();
-    if (!cart) {
-      cart = new Cart();
-      await cart.save();
+    try {
+        const product = await Product.findById(req.params.pid).lean();
+        if (!product) return res.status(404).send("Producto no encontrado");
+        const cart = await getOrCreateCart();
+        res.render("productDetail", { product, cartId: cart._id });
+    } catch (error) {
+        res.status(500).send("Error al cargar producto");
     }
-    
-    res.render("productDetail", { product, cartId: cart._id });
-  } catch (error) {
-    console.error("GET /products/:pid view error:", error);
-    res.status(500).send("Error al mostrar detalle");
-  }
 });
 
 router.get("/carts/:cid", async (req, res) => {
-  try {
-    const cart = await Cart.findById(req.params.cid).populate("products.product").lean();
-    if (!cart) return res.status(404).send("Carrito no encontrado");
-    res.render("cartDetail", { cart });
-  } catch (error) {
-    console.error("GET /carts/:cid view error:", error);
-    res.status(500).send("Error al mostrar carrito");
-  }
+    try {
+        const cart = await Cart.findById(req.params.cid).populate("products.product").lean();
+        if (!cart) return res.status(404).send("Carrito no encontrado");
+        
+        let total = 0;
+        cart.products.forEach(item => {
+            if (item.product) {
+                total += item.product.price * item.quantity;
+            }
+        });
+        
+        res.render("cartDetail", { cart, total });
+    } catch (error) {
+        res.status(500).send("Error al cargar carrito");
+    }
 });
 
 export default router;
