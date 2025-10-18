@@ -37,7 +37,12 @@ app.use(express.static(path.join(__dirname, "public")));
 
 app.use("/api/products", productsRouter);
 app.use("/api/carts", cartRouter);
+
 app.use("/", viewsRouter);
+
+app.use((req, res) => {
+  res.status(404).json({ error: "Ruta no encontrada" });
+});
 
 app.listen(PORT, () => {
   console.log(`Servidor en http://localhost:${PORT}`);
