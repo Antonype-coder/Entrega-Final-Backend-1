@@ -1,24 +1,20 @@
-<div class="row">
-    <div class="col-12 mb-4">
-        <h2>Productos</h2>
-        
-        <form class="row g-2 mb-3">
-            <div class="col-md-4">
-                <input type="text" name="query" class="form-control" placeholder="Buscar..." value="{{query}}">
-            </div>
-            <div class="col-md-3">
-                <select name="sort" class="form-select">
-                    <option value="">Ordenar</option>
-                    <option value="asc" {{#if (eq sort "asc")}}selected{{/if}}>Precio: Bajo a Alto</option>
-                    <option value="desc" {{#if (eq sort "desc")}}selected{{/if}}>Precio: Alto a Bajo</option>
-                </select>
-            </div>
-            <div class="col-md-2">
-                <button type="submit" class="btn btn-primary w-100">Filtrar</button>
-            </div>
-        </form>
+<h2>Productos</h2>
+
+<form class="row g-2 mb-3">
+    <div class="col-md-4">
+        <input type="text" name="query" class="form-control" placeholder="Buscar..." value="{{query}}">
     </div>
-</div>
+    <div class="col-md-3">
+        <select name="sort" class="form-select">
+            <option value="">Ordenar</option>
+            <option value="asc" {{#if (eq sort "asc")}}selected{{/if}}>Precio: Bajo a Alto</option>
+            <option value="desc" {{#if (eq sort "desc")}}selected{{/if}}>Precio: Alto a Bajo</option>
+        </select>
+    </div>
+    <div class="col-md-2">
+        <button type="submit" class="btn btn-primary w-100">Filtrar</button>
+    </div>
+</form>
 
 <div class="row">
     {{#each products}}
@@ -37,7 +33,7 @@
                     <form action="/api/carts/{{../cartId}}/products/{{this._id}}" method="POST">
                         <div class="input-group input-group-sm">
                             <input type="number" name="quantity" value="1" min="1" class="form-control">
-                            <button class="btn btn-warning" type="submit">+</button>
+                            <button class="btn btn-warning" type="submit">Agregar</button>
                         </div>
                     </form>
                     {{else}}
