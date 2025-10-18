@@ -1,32 +1,46 @@
 import express from "express";
 import Product from "../models/product.model.js";
 import Cart from "../models/cart.model.js";
-import { v4 as uuidv4 } from 'uuid';
 
 const router = express.Router();
 
 const userCarts = new Map();
 
 const generatePCId = (req) => {
-    const ip = req.ip || req.connection.remoteAddress;
-    const userAgent = req.get('User-Agent') || '';
-    return Buffer.from(ip + userAgent).toString('base64').slice(0, 16);
+    const ip = req.ip || req.connection.remoteAddress || 'unknown';
+    const userAgent = req.get('User-Agent') || 'unknown';
+    
+    let hash = 0;
+    const str = ip + userAgent;
+    
+    for (let i = 0; i < str.length; i++) {
+        const char = str.charCodeAt(i);
+        hash = ((hash << 5) - hash) + char;
+        hash = hash & hash;
+    }
+    
+    return Math.abs(hash).toString(36).slice(0, 10);
 };
 
 const getOrCreatePCCart = async (req) => {
     try {
         const pcId = generatePCId(req);
+        console.log(`PC ID generado: ${pcId} para IP: ${req.ip}`);
         
         if (userCarts.has(pcId)) {
             const cartId = userCarts.get(pcId);
             const cart = await Cart.findById(cartId);
-            if (cart) return cart;
+            if (cart) {
+                console.log(`Carrito encontrado para PC ${pcId}: ${cart._id}`);
+                return cart;
+            }
         }
         
         const newCart = new Cart();
         await newCart.save();
         
         userCarts.set(pcId, newCart._id.toString());
+        console.log(`Nuevo carrito creado para PC ${pcId}: ${newCart._id}`);
         
         return newCart;
         
@@ -120,7 +134,7 @@ router.get("/carts/:cid", async (req, res) => {
 router.get("/reset-cart", async (req, res) => {
     try {
         const pcId = generatePCId(req);
-        userCarts.delete(pcId); 
+        userCarts.delete(pcId);
         
         const newCart = new Cart();
         await newCart.save();
