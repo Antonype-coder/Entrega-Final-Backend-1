@@ -36,14 +36,18 @@
     <div>
         <button onclick="clearCart('{{cart._id}}')" class="btn btn-outline-danger me-2">Vaciar Carrito</button>
         <a href="/products" class="btn btn-secondary me-2">Seguir Comprando</a>
+        <a href="/new-cart" class="btn btn-info me-2">Nuevo Carrito</a>
         <button class="btn btn-success">Comprar</button>
     </div>
 </div>
 {{else}}
 <div class="text-center py-5">
     <h3 class="text-muted">Carrito vacío</h3>
-    <p class="text-muted">Agrega algunos productos desde la tienda</p>
-    <a href="/products" class="btn btn-primary">Ver Productos</a>
+    <p class="text-muted">Tu carrito ID: {{cart._id}}</p>
+    <div class="d-flex justify-content-center gap-2">
+        <a href="/products" class="btn btn-primary">Ver Productos</a>
+        <a href="/new-cart" class="btn btn-outline-primary">Crear Nuevo Carrito</a>
+    </div>
 </div>
 {{/if}}
 

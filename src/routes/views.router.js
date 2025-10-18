@@ -25,30 +25,39 @@ const generatePCId = (req) => {
 const getOrCreatePCCart = async (req) => {
     try {
         const pcId = generatePCId(req);
-        console.log(`PC ID generado: ${pcId} para IP: ${req.ip}`);
         
         if (userCarts.has(pcId)) {
             const cartId = userCarts.get(pcId);
             const cart = await Cart.findById(cartId);
-            if (cart) {
-                console.log(`Carrito encontrado para PC ${pcId}: ${cart._id}`);
-                return cart;
-            }
+            if (cart) return cart;
         }
         
         const newCart = new Cart();
         await newCart.save();
-        
         userCarts.set(pcId, newCart._id.toString());
-        console.log(`Nuevo carrito creado para PC ${pcId}: ${newCart._id}`);
         
         return newCart;
         
     } catch (error) {
-        console.error("Error creando carrito:", error);
+        console.error("Error:", error);
         const fallbackCart = new Cart();
         await fallbackCart.save();
         return fallbackCart;
+    }
+};
+
+const createNewCart = async (req) => {
+    try {
+        const newCart = new Cart();
+        await newCart.save();
+        
+        const pcId = generatePCId(req);
+        userCarts.set(pcId, newCart._id.toString());
+        
+        return newCart;
+    } catch (error) {
+        console.error("Error creando nuevo carrito:", error);
+        throw error;
     }
 };
 
@@ -131,17 +140,12 @@ router.get("/carts/:cid", async (req, res) => {
     }
 });
 
-router.get("/reset-cart", async (req, res) => {
+router.get("/new-cart", async (req, res) => {
     try {
-        const pcId = generatePCId(req);
-        userCarts.delete(pcId);
-        
-        const newCart = new Cart();
-        await newCart.save();
-        userCarts.set(pcId, newCart._id.toString());
-        
+        const newCart = await createNewCart(req);
         res.redirect(`/carts/${newCart._id}`);
     } catch (error) {
+        console.error("Error en /new-cart:", error);
         res.redirect("/products");
     }
 });

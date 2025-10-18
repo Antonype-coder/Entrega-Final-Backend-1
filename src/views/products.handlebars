@@ -30,7 +30,7 @@
                     <a href="/products/{{this._id}}" class="btn btn-sm btn-outline-primary">Ver más</a>
                     
                     {{#if this.status}}
-                    <form action="/api/carts/{{../cartId}}/products/{{this._id}}" method="POST">
+                    <form action="/api/carts/{{../cartId}}/products/{{this._id}}" method="POST" class="add-to-cart-form">
                         <div class="input-group input-group-sm">
                             <input type="number" name="quantity" value="1" min="1" class="form-control">
                             <button class="btn btn-warning" type="submit">Agregar</button>
