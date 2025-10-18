@@ -26,15 +26,24 @@ router.get("/:cid", async (req, res) => {
 router.post("/:cid/products/:pid", async (req, res) => {
     try {
         let quantity = 1;
-        if (req.body && req.body.quantity) {
+        if (req.body && typeof req.body === 'object') {
             quantity = parseInt(req.body.quantity) || 1;
         }
+
+        console.log(`Agregando producto ${req.params.pid} al carrito ${req.params.cid}, cantidad: ${quantity}`);
 
         const cart = await Cart.findById(req.params.cid);
         const product = await Product.findById(req.params.pid);
 
         if (!cart || !product) {
             return res.status(404).json({ status: "error", message: "No encontrado" });
+        }
+
+        if (product.stock < quantity) {
+            return res.status(400).json({ 
+                status: "error", 
+                message: `Stock insuficiente. Disponible: ${product.stock}` 
+            });
         }
 
         const existing = cart.products.find(p => p.product && p.product.toString() === req.params.pid);
@@ -46,7 +55,6 @@ router.post("/:cid/products/:pid", async (req, res) => {
         }
 
         await cart.save();
-        const updatedCart = await Cart.findById(cart._id).populate("products.product").lean();
         
         res.redirect(`/carts/${cart._id}`);
         

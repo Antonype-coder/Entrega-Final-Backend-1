@@ -32,7 +32,8 @@
                     {{#if this.status}}
                     <form action="/api/carts/{{../cartId}}/products/{{this._id}}" method="POST" class="add-to-cart-form">
                         <div class="input-group input-group-sm">
-                            <input type="number" name="quantity" value="1" min="1" class="form-control">
+                            <input type="number" name="quantity" value="1" min="1" max="{{this.stock}}" 
+                                   class="form-control quantity-input" data-product-id="{{this._id}}">
                             <button class="btn btn-warning" type="submit">Agregar</button>
                         </div>
                     </form>
@@ -61,3 +62,56 @@
     </ul>
 </nav>
 {{/if}}
+
+<script>
+document.addEventListener('DOMContentLoaded', function() {
+    const forms = document.querySelectorAll('.add-to-cart-form');
+    
+    forms.forEach(form => {
+        form.addEventListener('submit', async function(e) {
+            e.preventDefault();
+            
+            const quantityInput = this.querySelector('.quantity-input');
+            const quantity = parseInt(quantityInput.value) || 1;
+            const productId = quantityInput.getAttribute('data-product-id');
+            const cartId = "{{cartId}}";
+            
+            if (quantity < 1) {
+                alert('La cantidad debe ser al menos 1');
+                return;
+            }
+            
+            const maxStock = parseInt(quantityInput.getAttribute('max'));
+            if (quantity > maxStock) {
+                alert(`Solo hay ${maxStock} unidades disponibles`);
+                quantityInput.value = maxStock;
+                return;
+            }
+            
+            try {
+                const response = await fetch(`/api/carts/${cartId}/products/${productId}`, {
+                    method: 'POST',
+                    headers: {
+                        'Content-Type': 'application/json',
+                    },
+                    body: JSON.stringify({ quantity: quantity })
+                });
+                
+                if (response.redirected) {
+                    window.location.href = response.url;
+                } else {
+                    const result = await response.json();
+                    if (result.status === 'success') {
+                        window.location.href = `/carts/${result.payload._id}`;
+                    } else {
+                        alert('Error: ' + result.message);
+                    }
+                }
+            } catch (error) {
+                console.error('Error:', error);
+                alert('Error al agregar producto al carrito');
+            }
+        });
+    });
+});
+</script>
